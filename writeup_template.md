@@ -27,6 +27,8 @@ The goals / steps of this project are the following:
 [image6]: ./examples/placeholder.png "Traffic Sign 3"
 [image7]: ./examples/placeholder.png "Traffic Sign 4"
 [image8]: ./examples/placeholder.png "Traffic Sign 5"
+[image9]: ./report-images/dataset_exploration.png "Dataset Exploration"
+[image10]: ./report-images/distribution_of_classes.png "Distribution of Classes"
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
@@ -36,7 +38,7 @@ The goals / steps of this project are the following:
 
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
 
-You're reading it! and here is a link to my [project code](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
+You're reading it! and here is a link to my [project code](https://github.com/MC-8/SDC-P2-traffic-signs/blob/master/Traffic_Sign_Classifier.ipynb)
 
 ### Data Set Summary & Exploration
 
@@ -45,39 +47,57 @@ You're reading it! and here is a link to my [project code](https://github.com/ud
 I used the pandas library to calculate summary statistics of the traffic
 signs data set:
 
-* The size of training set is ?
-* The size of the validation set is ?
-* The size of test set is ?
-* The shape of a traffic sign image is ?
-* The number of unique classes/labels in the data set is ?
+* The size of training set is 34799
+* The size of the validation set is 4410
+* The size of test set is 12630
+* The shape of a traffic sign image is (32, 32, 3)
+* The number of unique classes/labels in the data set is 43
 
 #### 2. Include an exploratory visualization of the dataset.
 
-Here is an exploratory visualization of the data set. It is a bar chart showing how the data ...
+Here is an exploratory visualization of the data set. The following image displays a sample of images present in the dataset. It can be noticed that the pictures, despite having the same resolution, have different quality. Some of them are easy (for a human) to identify while require a bit of eye-squeezing and imagination, due to lighting conditions, blur, etc.
+![alt text][image9]
 
-![alt text][image1]
+The second image shows a normalized distribution of the classes in the three dataset. 
+![alt text][image10]
+
+It can be noted that training, validation and test datasets have very similar distributions, which is a positive characteristic as the training, validation and set will be done under similar conditions. However, the low-representation of some classes may lead to less precise results. Data augmentation will is in this report employed to increase the number of images in the training set, which should increase the accuracy of our neural network.
+
 
 ### Design and Test a Model Architecture
 
 #### 1. Describe how you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, and provide example images of the additional data. Then describe the characteristics of the augmented training set like number of images in the set, number of images for each class, etc.)
 
-As a first step, I decided to convert the images to grayscale because ...
+When using images to train a neural network, there are at least a couple of consideration to do.
+First, it is desirable to have quality images. Since this is not possible in the real world, it is more desirable to have a network that can recognize traffic signs even if the conditions are not so good. For examples, lighting conditions, blur caused by speed or fog,  and different viewing angles have all an significant impact on how well can we recognize a sign. 
+Second, to facilitate the learning process, it may be helpful to reduce the complexity of the images in order for the network to discern important features and not be "distracted" by unnecessary features. For example, even if the color of traffic signs are distinctive of their tipology, is very well possible to correctly classify a sign even when the images is in greyscale.
 
-Here is an example of a traffic sign image before and after grayscaling.
+In practice, converting images to greyscale achieves slight better accuracy. 
+Here is an example of what the dataset looks like after applying a greyscale transformation.
 
-![alt text][image2]
+[TODO IMAGE]
 
-As a last step, I normalized the image data because ...
+Due to the low amount of samples for some classes in the training set, I've decided to augment the dataset with random copies of images in the training dataset, but modified with some image processing algorithm. This way, an image with applied some digital filtering, is effectively a new image that can improve our network accuracy because it can add another "real-world" condition for our traffic sign.
 
-I decided to generate additional data because ... 
+Some image processing techniques (in addition to greyscale) that were considered (and are not limited to):
+* Blurring
+* Rotation
+* Translation
 
-To add more data to the the data set, I used the following techniques because ... 
+Here is an example of the database after blur, rotation and translation are applied to random images in the dataset (some images may randomly be  processed by multiple algorithms).
 
-Here is an example of an original image and an augmented image:
+[ TODO IMAGE ]
 
-![alt text][image3]
+There are many other image processing techniques, such as warping and image flipping, that can be used but I did not. This is because I obtained good training results, and the implementation of multiple image processing algorithms are out of the scope of this project.
 
-The difference between the original data set and the augmented data set is the following ... 
+Additionally, I've experimented with histogram equalization, which is a technique that makes lighting and colors of the images more even across the dataset.
+An example of an equalized dataset looks like this:
+
+[TODO IMAGE]
+
+This was to test my assumption that images that an even dataset (from lighting point of view) reduces the number of features that the network should detect (a dark sign is the same as a bright sign). In practice, even if there is a slight improvement, I have not found significant gain over the training performed with the greyscale dataset.
+
+The last step before feeding images to our network is to normalize the image data. Each pixel per channel has normally a value in [0, 255] but in order to improve the numerical accuracy of the learning algorithm, it is good practice to normalize data using a floating point reprensetation that maps the integer [0, 255] range to a floating point range of [-1, 1]. 
 
 
 #### 2. Describe what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
@@ -87,14 +107,18 @@ My final model consisted of the following layers:
 | Layer         		|     Description	        					| 
 |:---------------------:|:---------------------------------------------:| 
 | Input         		| 32x32x3 RGB image   							| 
+| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x8 	|
+| RELU					|												|
+| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x32 	|
+| RELU					|												|
 | Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
 | RELU					|												|
 | Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
-| Convolution 3x3	    | etc.      									|
-| Fully connected		| etc.        									|
-| Softmax				| etc.        									|
-|						|												|
-|						|												|
+| Fully connected		| outputs 256        							|
+| Dropout				| Keep probability = 90%						|
+| Fully connected		| outputs 128        							|
+| Fully connected		| outputs 64        							|
+| Classifier			| 43 classes        							|
  
 
 
